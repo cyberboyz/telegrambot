@@ -1,0 +1,91 @@
+<?php
+
+/*
+ * This file is part of the TelegramBot package.
+ *
+ * (c) Avtandil Kikabidze aka LONGMAN <akalongman@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ *
+ * Written by Marco Boretto <marco.bore@gmail.com>
+*/
+
+namespace Longman\TelegramBot\Commands;
+
+use Longman\TelegramBot\Request;
+use Longman\TelegramBot\Command;
+use Longman\TelegramBot\Entities\Update;
+
+class InfoCommand extends Command
+{
+    protected $name = 'info';
+    protected $description = 'Menampilkan info alarm';
+    protected $usage = '/info';
+    protected $version = '1.0.0';
+    protected $enabled = true;
+    protected $public = true;
+
+    public function execute(){
+
+$token_bot="126456181:AAEHTxqNBcbujlsmweSkWS1c-yAMvUbH8rQ";
+//ID dari akun telegram bisa dilihat dengan cara mengirimkan pesan ke bot via telegram biasa, kemudian ketikkan URL di browser : https://api.telegram.org/bot<token_bot>/getUpdates. Pada kasus ini, ID yang digunakan adalah ID Grup yang diawali oleh tanda "-"
+$ID_Penerima=-5590065;
+
+//Inisiasi nama username, password, hostname untuk terhubung ke MySQL
+
+//Fungsi untuk mengirimkan perintah dengan API Telegram lewat URL di mana variabel perintah contohnya adalah sendMessage, getUpdates sedangkan keterangan adalah informasi yang ditambahkan, contohnya adalah offset, timeout, chat_id, text
+function kirim_perintah($perintah, array $keterangan=null){
+	//Nama URL yang akan dibuka beserta perintah yang akan dijalankan
+	global $token_bot;
+	$url="https://api.telegram.org/bot".$token_bot."/";
+	$url.=$perintah."?";
+	//Memasukkan keterangan yang diperlukan untuk perintah seperti ID penerima/grup, isi pesan
+	foreach ($keterangan as $k => $v) {
+		$url.=$k."=".$v."&";
+	}
+	//Contoh hasil variabel url jadi : 
+	//https://api.telegram.org/bot131492176:AAHwGBJhfMrlxGyGMBQtC_QR7jlZxZxLEPs/sendMessage?chat_id=-5590065&text=hai
+	
+	//Membuka url dengan perintah file_get_contents dan mengembalikannya ke variabel kembalian
+	$kembalian=file_get_contents($url);
+	return $kembalian;
+}
+
+//Menghubungkan ke MySQL
+global $dbhandle;
+//Memilih database dengan nama dbname untuk diambil dari MySQL
+global $selected;
+//$regional="'Yogyakarta'";
+global $dbhandle;
+//Memilih database dengan nama dbname untuk diambil dari MySQL
+global $selected;
+//Melakukan query dan menyimpan hasilnya ke variabel result
+$regional="'Yogyakarta'";
+$result = mysql_query("SELECT * FROM alarm where regional=".$regional);
+
+//Mengubah hasil query yang disimpan di dalam variabel result ke dalam array
+$i=1;
+while ($row = mysql_fetch_array($result)){
+	$arrtext[$i]['id_alarm']= $row{'id_alarm'};
+	$arrtext[$i]['kode_lokasi']= $row{'kode_lokasi'};
+	$arrtext[$i]['tp']= $row{'tp'};
+	$arrtext[$i]['perangkat']=$row{'perangkat'};
+	$arrtext[$i]['bands']= $row{'bands'};
+	$arrtext[$i]['tdm']=$row{'tdm'};
+	$arrtext[$i]['info']=$row{'info'};
+	$arrtext[$i]['time']=$row{'time'};
+	$arrtext[$i]['regional']=$row{'regional'};
+	$i++;
+}
+
+$isi_teks=Request::kirim($arrtext);
+
+//Mengirimkan perintah sendMessage beserta ID group sebagai penerima dan isi teks
+$isi=['text'=>$isi_teks,'chat_id'=>$ID_Penerima];
+kirim_perintah('sendMessage',$isi);
+
+//Menutup database
+mysql_close($dbhandle);
+	}
+}
